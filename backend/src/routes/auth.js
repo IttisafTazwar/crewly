@@ -1,4 +1,11 @@
 import express from 'express'
+import { registerBusiness, login, getMe } from '../controllers/authController.js'
+import protect from '../middleware/auth.js'
+
 const router = express.Router()
-router.get('/', (req, res) => res.json({ message: 'Auth route working' }))
+
+router.post('/register', registerBusiness)
+router.post('/login', login)
+router.get('/me', protect, getMe)
+
 export default router
