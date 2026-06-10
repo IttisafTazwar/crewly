@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { getShifts, getMyShifts, createShift, deleteShift, getUsers } from '../services/api'
+import { getShifts, getMyShifts, createShift, updateShift, deleteShift, getUsers } from '../services/api'
 import useAuth from '../hooks/useAuth'
 import useFlash from '../hooks/useFlash'
 
@@ -9,6 +9,7 @@ function Schedule() {
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
+  const [editingShift, setEditingShift] = useState(null)
   const { success, setSuccess, error, setError } = useFlash()
   const [form, setForm] = useState({
     userId: '',
@@ -44,6 +45,25 @@ function Schedule() {
     setForm({ ...form, [e.target.name]: e.target.value })
   }
 
+  const handleEdit = (shift) => {
+    setEditingShift(shift)
+    setForm({
+      userId: shift.userId?._id || '',
+      date: new Date(shift.date).toISOString().split('T')[0],
+      startTime: shift.startTime,
+      endTime: shift.endTime,
+      position: shift.position || '',
+      notes: shift.notes || '',
+    })
+    setShowForm(true)
+  }
+
+  const handleCancel = () => {
+    setShowForm(false)
+    setEditingShift(null)
+    setForm({ userId: '', date: '', startTime: '', endTime: '', position: '', notes: '' })
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
@@ -57,19 +77,29 @@ function Schedule() {
     const selectedDate = new Date(form.date)
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-    if (selectedDate < today) {
+    if (!editingShift && selectedDate < today) {
       setError('Cannot assign shifts to past dates')
       return
     }
 
     try {
-      await createShift(form)
-      setSuccess('Shift created successfully!')
-      setForm({ userId: '', date: '', startTime: '', endTime: '', position: '', notes: '' })
-      setShowForm(false)
+      if (editingShift) {
+        await updateShift(editingShift._id, {
+          date: form.date,
+          startTime: form.startTime,
+          endTime: form.endTime,
+          position: form.position,
+          notes: form.notes,
+        })
+        setSuccess('Shift updated successfully!')
+      } else {
+        await createShift(form)
+        setSuccess('Shift created successfully!')
+      }
+      handleCancel()
       fetchData()
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to create shift')
+      setError(err.response?.data?.message || 'Failed to save shift')
     }
   }
 
@@ -98,7 +128,7 @@ function Schedule() {
         <h1 className="text-2xl font-bold text-gray-900">Schedule</h1>
         {isManagerOrOwner && (
           <button
-            onClick={() => setShowForm(!showForm)}
+            onClick={() => showForm ? handleCancel() : setShowForm(true)}
             className="bg-indigo-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition"
           >
             {showForm ? 'Cancel' : '+ Assign Shift'}
@@ -111,25 +141,29 @@ function Schedule() {
 
       {showForm && isManagerOrOwner && (
         <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
-          <h2 className="font-semibold text-gray-800 mb-4">Assign New Shift</h2>
+          <h2 className="font-semibold text-gray-800 mb-4">
+            {editingShift ? 'Edit Shift' : 'Assign New Shift'}
+          </h2>
           <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-gray-700">Employee</label>
-              <select
-                name="userId"
-                value={form.userId}
-                onChange={handleChange}
-                required
-                className="border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="">Select employee</option>
-                {users.map(u => (
-                  <option key={u._id} value={u._id}>
-                    {u.firstName} {u.lastName} ({u.role})
-                  </option>
-                ))}
-              </select>
-            </div>
+            {!editingShift && (
+              <div className="flex flex-col gap-1 sm:col-span-2">
+                <label className="text-sm font-medium text-gray-700">Employee</label>
+                <select
+                  name="userId"
+                  value={form.userId}
+                  onChange={handleChange}
+                  required
+                  className="border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="">Select employee</option>
+                  {users.map(u => (
+                    <option key={u._id} value={u._id}>
+                      {u.firstName} {u.lastName} ({u.role})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium text-gray-700">Date</label>
               <input
@@ -138,6 +172,16 @@ function Schedule() {
                 value={form.date}
                 onChange={handleChange}
                 required
+                className="border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium text-gray-700">Position</label>
+              <input
+                name="position"
+                value={form.position}
+                onChange={handleChange}
+                placeholder="e.g. Cashier"
                 className="border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
@@ -163,17 +207,7 @@ function Schedule() {
                 className="border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-gray-700">Position</label>
-              <input
-                name="position"
-                value={form.position}
-                onChange={handleChange}
-                placeholder="e.g. Cashier"
-                className="border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1 sm:col-span-2">
               <label className="text-sm font-medium text-gray-700">Notes</label>
               <input
                 name="notes"
@@ -183,12 +217,19 @@ function Schedule() {
                 className="border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
-            <div className="sm:col-span-2">
+            <div className="sm:col-span-2 flex gap-3">
               <button
                 type="submit"
                 className="bg-indigo-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition"
               >
-                Assign Shift
+                {editingShift ? 'Update Shift' : 'Assign Shift'}
+              </button>
+              <button
+                type="button"
+                onClick={handleCancel}
+                className="border border-gray-300 text-gray-600 px-6 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition"
+              >
+                Cancel
               </button>
             </div>
           </form>
@@ -235,7 +276,13 @@ function Schedule() {
                     </span>
                   </td>
                   {isManagerOrOwner && (
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 flex gap-3">
+                      <button
+                        onClick={() => handleEdit(shift)}
+                        className="text-indigo-500 hover:text-indigo-700 text-xs font-medium transition"
+                      >
+                        Edit
+                      </button>
                       <button
                         onClick={() => handleDelete(shift._id)}
                         className="text-red-500 hover:text-red-700 text-xs font-medium transition"
