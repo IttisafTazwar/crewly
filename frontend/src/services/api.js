@@ -58,3 +58,7 @@ export const createGroup = (data) => api.post('/api/chat/groups', data)
 export const getGroupMessages = (groupId) => api.get(`/api/chat/groups/${groupId}/messages`)
 export const sendMessage = (groupId, data) => api.post(`/api/chat/groups/${groupId}/messages`, data)
 export const addMember = (groupId, data) => api.put(`/api/chat/groups/${groupId}/members`, data)
+
+// Notifications
+export const getMyNotifications = () => api.get('/api/notifications')
+export const markNotificationsRead = () => api.put('/api/notifications/read')

@@ -10,6 +10,8 @@ import userRouter from './src/routes/users.js'
 import shiftRouter from './src/routes/shifts.js'
 import attendanceRouter from './src/routes/attendance.js'
 import chatRouter from './src/routes/chat.js'
+import { autoClockOut } from './src/controllers/attendanceController.js'
+import notificationRouter from './src/routes/notifications.js'
 
 dotenv.config()
 
@@ -25,6 +27,7 @@ const io = new Server(httpServer, {
 const PORT = process.env.PORT || 5000
 
 connectDB()
+setInterval(autoClockOut, 5 * 60 * 1000)
 
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -48,6 +51,7 @@ app.use('/api/users', userRouter)
 app.use('/api/shifts', shiftRouter)
 app.use('/api/attendance', attendanceRouter)
 app.use('/api/chat', chatRouter)
+app.use('/api/notifications', notificationRouter)
 
 app.get('/', (req, res) => {
   res.json({ message: 'Crewly API is running' })

@@ -28,26 +28,27 @@ const attendanceSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
-  status: {
-    type: String,
-    enum: ['active', 'completed'],
-    default: 'active',
+  overtimeHours: {
+    type: Number,
+    default: 0,
+  },
+  autoClockOut: {
+    type: Boolean,
+    default: false,
   },
   notes: {
     type: String,
     default: '',
+  },
+  status: {
+    type: String,
+    enum: ['active', 'completed'],
+    default: 'active',
   },
   createdAt: {
     type: Date,
     default: Date.now,
   },
 })
-
-attendanceSchema.methods.calculateHours = function () {
-  if (this.clockIn && this.clockOut) {
-    const diff = this.clockOut - this.clockIn
-    this.totalHours = parseFloat((diff / (1000 * 60 * 60)).toFixed(2))
-  }
-}
 
 export default mongoose.model('Attendance', attendanceSchema)

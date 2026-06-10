@@ -1,4 +1,5 @@
 import Shift from '../models/Shift.js'
+import { createNotification } from './notificationController.js'
 
 export const getShifts = async (req, res) => {
   try {
@@ -67,6 +68,14 @@ export const createShift = async (req, res) => {
 
     const populated = await shift.populate('userId', 'firstName lastName email')
 
+    await createNotification(
+      req.user.businessId,
+      userId,
+      'New Shift Assigned',
+      `You have been assigned a shift on ${new Date(date).toLocaleDateString('en-AU', { weekday: 'long', month: 'short', day: 'numeric' })} from ${startTime} to ${endTime}`,
+      'shift_assigned'
+    )
+
     res.status(201).json({ message: 'Shift created successfully', shift: populated })
   } catch (error) {
     res.status(500).json({ message: `Failed to create shift: ${error.message}` })
@@ -86,6 +95,14 @@ export const updateShift = async (req, res) => {
     if (!shift) {
       return res.status(404).json({ message: 'Shift not found' })
     }
+
+    await createNotification(
+      req.user.businessId,
+      shift.userId._id,
+      'Shift Updated',
+      `Your shift on ${new Date(shift.date).toLocaleDateString('en-AU', { weekday: 'long', month: 'short', day: 'numeric' })} has been updated to ${shift.startTime} — ${shift.endTime}`,
+      'shift_updated'
+    )
 
     res.status(200).json({ message: 'Shift updated successfully', shift })
   } catch (error) {
