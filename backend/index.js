@@ -3,6 +3,7 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import { createServer } from 'http'
 import { Server } from 'socket.io'
+import rateLimit from 'express-rate-limit'
 import connectDB from './src/db.js'
 import authRouter from './src/routes/auth.js'
 import userRouter from './src/routes/users.js'
@@ -16,7 +17,7 @@ const app = express()
 const httpServer = createServer(app)
 const io = new Server(httpServer, {
   cors: {
-    origin: 'http://localhost:5173',
+    origin: '*',
     methods: ['GET', 'POST']
   }
 })
@@ -25,8 +26,22 @@ const PORT = process.env.PORT || 5000
 
 connectDB()
 
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: { message: 'Too many requests, please try again later' }
+})
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { message: 'Too many login attempts, please try again in 15 minutes' }
+})
+
 app.use(cors())
 app.use(express.json())
+app.use(generalLimiter)
+app.use('/api/auth/login', loginLimiter)
 
 app.use('/api/auth', authRouter)
 app.use('/api/users', userRouter)
