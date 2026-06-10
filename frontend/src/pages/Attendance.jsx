@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { clockIn, clockOut, getMyAttendance, getAttendanceStatus, getAllAttendance } from '../services/api'
 import useAuth from '../hooks/useAuth'
+import useFlash from '../hooks/useFlash'
 
 function Attendance() {
   const { user } = useAuth()
@@ -11,8 +12,7 @@ function Attendance() {
   const [allAttendance, setAllAttendance] = useState([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
+  const { success, setSuccess, error, setError } = useFlash()
 
   const fetchData = async () => {
     try {

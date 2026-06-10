@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { getShifts, getMyShifts, createShift, deleteShift, getUsers } from '../services/api'
 import useAuth from '../hooks/useAuth'
+import useFlash from '../hooks/useFlash'
 
 function Schedule() {
   const { user } = useAuth()
@@ -8,8 +9,7 @@ function Schedule() {
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
+  const { success, setSuccess, error, setError } = useFlash()
   const [form, setForm] = useState({
     userId: '',
     date: '',
@@ -45,33 +45,34 @@ function Schedule() {
   }
 
   const handleSubmit = async (e) => {
-  e.preventDefault()
-  setError('')
-  setSuccess('')
+    e.preventDefault()
+    setError('')
+    setSuccess('')
 
-  if (form.startTime >= form.endTime) {
-    setError('End time must be after start time')
-    return
+    if (form.startTime >= form.endTime) {
+      setError('End time must be after start time')
+      return
+    }
+
+    const selectedDate = new Date(form.date)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    if (selectedDate < today) {
+      setError('Cannot assign shifts to past dates')
+      return
+    }
+
+    try {
+      await createShift(form)
+      setSuccess('Shift created successfully!')
+      setForm({ userId: '', date: '', startTime: '', endTime: '', position: '', notes: '' })
+      setShowForm(false)
+      fetchData()
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to create shift')
+    }
   }
 
-  const selectedDate = new Date(form.date)
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  if (selectedDate < today) {
-    setError('Cannot assign shifts to past dates')
-    return
-  }
-
-  try {
-    await createShift(form)
-    setSuccess('Shift created successfully!')
-    setForm({ userId: '', date: '', startTime: '', endTime: '', position: '', notes: '' })
-    setShowForm(false)
-    fetchData()
-  } catch (err) {
-    setError(err.response?.data?.message || 'Failed to create shift')
-  }
-}
   const handleDelete = async (id) => {
     if (!confirm('Are you sure you want to delete this shift?')) return
     try {
