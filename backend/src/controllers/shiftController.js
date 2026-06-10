@@ -30,6 +30,30 @@ export const createShift = async (req, res) => {
   const { userId, date, startTime, endTime, position, notes } = req.body
 
   try {
+    if (startTime >= endTime) {
+      return res.status(400).json({ message: 'End time must be after start time' })
+    }
+
+    const shiftDate = new Date(date)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    if (shiftDate < today) {
+      return res.status(400).json({ message: 'Cannot assign shifts to past dates' })
+    }
+
+    const overlapping = await Shift.findOne({
+      userId,
+      date,
+      status: { $ne: 'cancelled' },
+      $or: [
+        { startTime: { $lt: endTime }, endTime: { $gt: startTime } }
+      ]
+    })
+
+    if (overlapping) {
+      return res.status(400).json({ message: 'Employee already has a shift during this time' })
+    }
+
     const shift = await Shift.create({
       businessId: req.user.businessId,
       userId,
