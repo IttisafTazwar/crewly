@@ -84,15 +84,28 @@ export const updateUser = async (req, res) => {
 
 export const deactivateUser = async (req, res) => {
   try {
+    if (req.params.id === req.user._id.toString()) {
+      return res.status(400).json({ message: 'You cannot deactivate your own account' })
+    }
+
+    const targetUser = await User.findOne({
+      _id: req.params.id,
+      businessId: req.user.businessId,
+    })
+
+    if (!targetUser) {
+      return res.status(404).json({ message: 'User not found' })
+    }
+
+    if (targetUser.role === 'owner') {
+      return res.status(400).json({ message: 'Owner accounts cannot be deactivated' })
+    }
+
     const user = await User.findOneAndUpdate(
       { _id: req.params.id, businessId: req.user.businessId },
       { isActive: false },
       { new: true }
     ).select('-password')
-
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' })
-    }
 
     res.status(200).json({ message: 'User deactivated successfully', user })
   } catch (error) {

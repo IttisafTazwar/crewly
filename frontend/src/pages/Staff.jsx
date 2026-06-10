@@ -50,16 +50,24 @@ function Staff() {
     }
   }
 
-  const handleDeactivate = async (id) => {
-    if (!confirm('Are you sure you want to deactivate this employee?')) return
-    try {
-      await deactivateUser(id)
-      setSuccess('Employee deactivated successfully')
-      fetchUsers()
-    } catch (err) {
-      setError('Failed to deactivate employee')
-    }
+  const handleDeactivate = async (id, role) => {
+  if (id === user.id) {
+    setError('You cannot deactivate your own account')
+    return
   }
+  if (role === 'owner') {
+    setError('Owner accounts cannot be deactivated')
+    return
+  }
+  if (!confirm('Are you sure you want to deactivate this employee?')) return
+  try {
+    await deactivateUser(id)
+    setSuccess('Employee deactivated successfully')
+    fetchUsers()
+  } catch (err) {
+    setError('Failed to deactivate employee')
+  }
+}
 
   if (loading) {
     return (
@@ -77,7 +85,7 @@ function Staff() {
           onClick={() => setShowForm(!showForm)}
           className="bg-indigo-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition"
         >
-          {showForm ? 'Cancel' : '+ Add Employee'}
+          {showForm ? "Cancel" : "+ Add Employee"}
         </button>
       </div>
 
@@ -87,9 +95,14 @@ function Staff() {
       {showForm && (
         <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
           <h2 className="font-semibold text-gray-800 mb-4">New Employee</h2>
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <form
+            onSubmit={handleSubmit}
+            className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+          >
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-gray-700">First Name</label>
+              <label className="text-sm font-medium text-gray-700">
+                First Name
+              </label>
               <input
                 name="firstName"
                 value={form.firstName}
@@ -99,7 +112,9 @@ function Staff() {
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-gray-700">Last Name</label>
+              <label className="text-sm font-medium text-gray-700">
+                Last Name
+              </label>
               <input
                 name="lastName"
                 value={form.lastName}
@@ -120,7 +135,9 @@ function Staff() {
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-gray-700">Password</label>
+              <label className="text-sm font-medium text-gray-700">
+                Password
+              </label>
               <input
                 name="password"
                 type="password"
@@ -175,13 +192,16 @@ function Staff() {
             </tr>
           </thead>
           <tbody>
-            {users.map(user => (
-              <tr key={user._id} className="border-b border-gray-50 hover:bg-gray-50">
+            {users.map((user) => (
+              <tr
+                key={user._id}
+                className="border-b border-gray-50 hover:bg-gray-50"
+              >
                 <td className="px-6 py-4 font-medium text-gray-800">
                   {user.firstName} {user.lastName}
                 </td>
                 <td className="px-6 py-4 text-gray-600">{user.email}</td>
-                <td className="px-6 py-4 text-gray-600">{user.phone || '—'}</td>
+                <td className="px-6 py-4 text-gray-600">{user.phone || "—"}</td>
                 <td className="px-6 py-4">
                   <span className="text-xs bg-indigo-100 text-indigo-600 px-2 py-1 rounded-full font-medium capitalize">
                     {user.role}
@@ -189,7 +209,7 @@ function Staff() {
                 </td>
                 <td className="px-6 py-4">
                   <button
-                    onClick={() => handleDeactivate(user._id)}
+                    onClick={() => handleDeactivate(user._id, user.role)}
                     className="text-red-500 hover:text-red-700 text-xs font-medium transition"
                   >
                     Deactivate
@@ -201,7 +221,7 @@ function Staff() {
         </table>
       </div>
     </div>
-  )
+  );
 }
 
 export default Staff
