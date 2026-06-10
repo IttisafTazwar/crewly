@@ -35,6 +35,15 @@ export const createUser = async (req, res) => {
       return res.status(400).json({ message: 'Email already in use' })
     }
 
+    const allowedRoles = ['employee', 'manager']
+    if (!allowedRoles.includes(role)) {
+      return res.status(400).json({ message: 'Invalid role. Allowed roles are employee and manager' })
+    }
+
+    if (role === 'manager' && req.user.role !== 'owner') {
+      return res.status(403).json({ message: 'Only owners can create manager accounts' })
+    }
+
     const user = await User.create({
       businessId: req.user.businessId,
       firstName,
