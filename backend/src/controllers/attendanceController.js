@@ -139,6 +139,7 @@ export const getAllAttendance = async (req, res) => {
     const records = await Attendance.find({ businessId: req.user.businessId })
       .populate('userId', 'firstName lastName email role')
       .populate('shiftId', 'startTime endTime position')
+      .populate('enteredBy', 'firstName lastName')
       .sort({ clockIn: -1 })
 
     res.status(200).json(records)
@@ -231,5 +232,96 @@ export const autoClockOut = async () => {
     }
   } catch (error) {
     console.error('Auto clock-out error:', error.message)
+  }
+}
+
+export const createManualAttendance = async (req, res) => {
+  const { userId, date, startTime, endTime, reason } = req.body
+
+  try {
+    if (!userId || !date || !startTime || !endTime) {
+      return res.status(400).json({ message: 'userId, date, startTime and endTime are required' })
+    }
+
+    const [startHour, startMinute] = startTime.split(':').map(Number)
+    const [endHour, endMinute] = endTime.split(':').map(Number)
+
+    const clockIn = new Date(date)
+    clockIn.setHours(startHour, startMinute, 0, 0)
+
+    const clockOut = new Date(date)
+    clockOut.setHours(endHour, endMinute, 0, 0)
+
+    if (clockOut <= clockIn) {
+      return res.status(400).json({ message: 'End time must be after start time' })
+    }
+
+    const diff = clockOut - clockIn
+    const totalHours = parseFloat((diff / (1000 * 60 * 60)).toFixed(2))
+
+    const attendance = await Attendance.create({
+      businessId: req.user.businessId,
+      userId,
+      clockIn,
+      clockOut,
+      totalHours,
+      status: 'completed',
+      manualEntry: true,
+      enteredBy: req.user._id,
+      reason: reason || 'Manual entry by manager',
+    })
+
+    const populated = await attendance.populate('userId', 'firstName lastName')
+
+    res.status(201).json({ message: 'Attendance record created successfully', attendance: populated })
+  } catch (error) {
+    res.status(500).json({ message: `Failed to create attendance: ${error.message}` })
+  }
+}
+
+export const editAttendance = async (req, res) => {
+  const { startTime, endTime, reason } = req.body
+
+  try {
+    const attendance = await Attendance.findOne({
+      _id: req.params.id,
+      businessId: req.user.businessId,
+    })
+
+    if (!attendance) {
+      return res.status(404).json({ message: 'Attendance record not found' })
+    }
+
+    const date = attendance.clockIn
+
+    if (startTime) {
+      const [startHour, startMinute] = startTime.split(':').map(Number)
+      const newClockIn = new Date(date)
+      newClockIn.setHours(startHour, startMinute, 0, 0)
+      attendance.clockIn = newClockIn
+    }
+
+    if (endTime) {
+      const [endHour, endMinute] = endTime.split(':').map(Number)
+      const newClockOut = new Date(date)
+      newClockOut.setHours(endHour, endMinute, 0, 0)
+      attendance.clockOut = newClockOut
+    }
+
+    if (attendance.clockOut && attendance.clockIn) {
+      const diff = attendance.clockOut - attendance.clockIn
+      attendance.totalHours = parseFloat((diff / (1000 * 60 * 60)).toFixed(2))
+    }
+
+    attendance.manualEntry = true
+    attendance.enteredBy = req.user._id
+    attendance.reason = reason || 'Edited by manager'
+    attendance.status = 'completed'
+
+    await attendance.save()
+
+    res.status(200).json({ message: 'Attendance record updated successfully', attendance })
+  } catch (error) {
+    res.status(500).json({ message: `Failed to edit attendance: ${error.message}` })
   }
 }

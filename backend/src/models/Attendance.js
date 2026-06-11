@@ -36,6 +36,19 @@ const attendanceSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  manualEntry: {
+    type: Boolean,
+    default: false,
+  },
+  enteredBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null,
+  },
+  reason: {
+    type: String,
+    default: '',
+  },
   notes: {
     type: String,
     default: '',

@@ -62,3 +62,5 @@ export const addMember = (groupId, data) => api.put(`/api/chat/groups/${groupId}
 // Notifications
 export const getMyNotifications = () => api.get('/api/notifications')
 export const markNotificationsRead = () => api.put('/api/notifications/read')
+export const createManualAttendance = (data) => api.post('/api/attendance/manual', data)
+export const editAttendanceRecord = (id, data) => api.put(`/api/attendance/${id}`, data)
