@@ -11,15 +11,23 @@ import Chat from './pages/Chat'
 import Staff from './pages/Staff'
 import Settings from './pages/Settings'
 import useAuth from './hooks/useAuth'
+import BottomNav from './components/BottomNav'
 
 function Layout({ children }) {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      <Sidebar />
-      <main className="ml-56 pt-16 p-6">
-        {children}
-      </main>
+      <div className="flex">
+        <div className="hidden md:block">
+          <Sidebar />
+        </div>
+        <main className="w-full md:ml-56 pt-16 p-4 pb-24 md:pb-6">
+          {children}
+        </main>
+      </div>
+      <div className="md:hidden">
+        <BottomNav />
+      </div>
     </div>
   )
 }
